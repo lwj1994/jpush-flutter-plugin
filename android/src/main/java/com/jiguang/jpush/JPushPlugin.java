@@ -17,7 +17,6 @@ import android.util.Log;
 
 import org.json.JSONObject;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -31,6 +30,9 @@ import cn.jpush.android.api.JPushInterface;
 import cn.jpush.android.api.NotificationMessage;
 import cn.jpush.android.data.JPushCollectControl;
 import cn.jpush.android.data.JPushLocalNotification;
+import cn.jpush.android.ups.JPushUPSManager;
+import cn.jpush.android.ups.TokenResult;
+import cn.jpush.android.ups.UPSRegisterCallBack;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.embedding.engine.plugins.activity.ActivityAware;
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding;
@@ -47,21 +49,23 @@ public class JPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAw
     private Context context;
     private Activity mActivity;
     private int sequence;
+
     public JPushPlugin() {
         this.sequence = 0;
     }
 
     @Override
     public void onAttachedToEngine(FlutterPluginBinding flutterPluginBinding) {
-        MethodChannel  channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "jpush");
+        MethodChannel channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "jpush");
         channel.setMethodCallHandler(this);
-         context = flutterPluginBinding.getApplicationContext();
+        context = flutterPluginBinding.getApplicationContext();
         JPushHelper.getInstance().setMethodChannel(channel);
         JPushHelper.getInstance().setContext(context);
     }
+
     @Override
     public void onAttachedToActivity(ActivityPluginBinding activityPluginBinding) {
-        if(activityPluginBinding!=null){
+        if (activityPluginBinding != null) {
             mActivity = activityPluginBinding.getActivity();
         }
     }
@@ -79,10 +83,11 @@ public class JPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAw
     public void onDetachedFromActivity() {
 
     }
+
     @Override
     public void onDetachedFromEngine(FlutterPluginBinding binding) {
-        MethodChannel  channel =JPushHelper.getInstance().getChannel();
-        if(channel!=null){
+        MethodChannel channel = JPushHelper.getInstance().getChannel();
+        if (channel != null) {
             channel.setMethodCallHandler(null);
         }
         JPushHelper.getInstance().setDartIsReady(false);
@@ -118,7 +123,7 @@ public class JPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAw
             resumePush(call, result);
         } else if (call.method.equals("clearAllNotifications")) {
             clearAllNotifications(call, result);
-        }else if (call.method.equals("clearLocalNotifications")) {
+        } else if (call.method.equals("clearLocalNotifications")) {
             clearLocalNotifications(call, result);
         } else if (call.method.equals("clearNotification")) {
             clearNotification(call, result);
@@ -140,7 +145,7 @@ public class JPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAw
             setAuth(call, result);
         } else if (call.method.equals("testCountryCode")) {
             testCountryCode(call, result);
-        }else if (call.method.equals("enableAutoWakeup")) {
+        } else if (call.method.equals("enableAutoWakeup")) {
             enableAutoWakeup(call, result);
         } else if (call.method.equals("setLinkMergeEnable")) {
             setLinkMergeEnable(call, result);
@@ -152,40 +157,42 @@ public class JPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAw
             setCollectControl(call, result);
         }else if (call.method.equals("setChannelAndSound")) {
             setChannelAndSound(call, result);
-        }else if (call.method.equals("requestRequiredPermission")) {
+        } else if (call.method.equals("requestRequiredPermission")) {
             requestRequiredPermission(call, result);
         } else {
             result.notImplemented();
         }
     }
-    public void requestRequiredPermission(MethodCall call, Result result){
+
+    public void requestRequiredPermission(MethodCall call, Result result) {
         JPushInterface.requestRequiredPermission(mActivity);
     }
+
     public void setChannelAndSound(MethodCall call, Result result) {
         HashMap<String, Object> readableMap = call.arguments();
         if (readableMap == null) {
             return;
         }
-        String channel = (String)readableMap.get("channel");
-        String channelId = (String)readableMap.get("channel_id");
-        String sound = (String)readableMap.get("sound");
+        String channel = (String) readableMap.get("channel");
+        String channelId = (String) readableMap.get("channel_id");
+        String sound = (String) readableMap.get("sound");
         try {
-            NotificationManager manager= (NotificationManager) context.getSystemService("notification");
-            if(Build.VERSION.SDK_INT<26){
+            NotificationManager manager = (NotificationManager) context.getSystemService("notification");
+            if (Build.VERSION.SDK_INT < 26) {
                 return;
             }
-            if(TextUtils.isEmpty(channel)||TextUtils.isEmpty(channelId)){
+            if (TextUtils.isEmpty(channel) || TextUtils.isEmpty(channelId)) {
                 return;
             }
-            NotificationChannel channel1=new NotificationChannel(channelId,channel, NotificationManager.IMPORTANCE_HIGH);
-            if(!TextUtils.isEmpty(sound)){
-                channel1.setSound(Uri.parse("android.resource://"+context.getPackageName()+"/raw/"+sound),null);
+            NotificationChannel channel1 = new NotificationChannel(channelId, channel, NotificationManager.IMPORTANCE_HIGH);
+            if (!TextUtils.isEmpty(sound)) {
+                channel1.setSound(Uri.parse("android.resource://" + context.getPackageName() + "/raw/" + sound), null);
             }
             manager.createNotificationChannel(channel1);
-            JPushInterface.setChannel(context,channel);
-            Log.d(TAG,"setChannelAndSound channelId="+channelId+" channel="+channel+" sound="+sound);
+            JPushInterface.setChannel(context, channel);
+            Log.d(TAG, "setChannelAndSound channelId=" + channelId + " channel=" + channel + " sound=" + sound);
 
-        }catch (Throwable throwable){
+        } catch (Throwable throwable) {
         }
     }
     private void setLinkMergeEnable(MethodCall call, Result result) {
@@ -268,7 +275,7 @@ public class JPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAw
         }
     }
 
-    private void setAuth(MethodCall call, Result result){
+    private void setAuth(MethodCall call, Result result) {
         HashMap<String, Object> map = call.arguments();
         if (map == null) {
             return;
@@ -277,13 +284,15 @@ public class JPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAw
         if (enable == null) {
             enable = false;
         }
-        JCollectionAuth.setAuth(context,enable);
+        JCollectionAuth.setAuth(context, enable);
     }
-    private void testCountryCode(MethodCall call, Result result){
+
+    private void testCountryCode(MethodCall call, Result result) {
         String code = call.arguments();
-        Log.d(TAG,"testCountryCode code="+code);
-        JCoreInterface.testCountryCode(context,code);
+        Log.d(TAG, "testCountryCode code=" + code);
+        JCoreInterface.testCountryCode(context, code);
     }
+
     private void setWakeEnable(MethodCall call, Result result) {
         HashMap<String, Object> map = call.arguments();
         if (map == null) {
@@ -293,8 +302,9 @@ public class JPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAw
         if (enable == null) {
             enable = false;
         }
-        JCoreInterface.setWakeEnable(context,enable);
+        JCoreInterface.setWakeEnable(context, enable);
     }
+
     private void enableAutoWakeup(MethodCall call, Result result) {
         HashMap<String, Object> map = call.arguments();
         if (map == null) {
@@ -304,9 +314,8 @@ public class JPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAw
         if (enable == null) {
             enable = false;
         }
-        JCollectionAuth.enableAutoWakeup(context,enable);
+        JCollectionAuth.enableAutoWakeup(context, enable);
     }
-
 
 
     public void setup(MethodCall call, Result result) {
@@ -316,13 +325,27 @@ public class JPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAw
         boolean debug = (boolean) map.get("debug");
         JPushInterface.setDebugMode(debug);
         String appKey = (String) map.get("appKey");
-        if(!TextUtils.isEmpty(appKey)){
-            JPushConfig config=new JPushConfig();
-            config.setjAppKey(appKey);
-            JPushInterface.init(context,config);
-        }else {
-            JPushInterface.init(context);
-        }            // 初始化 JPush
+        //JPushInterface.init(context);            // 初始化 JPush
+        // 注册接口
+        //注 1：该接口与 JPushInterface.init 接口不建议混用，可直接使用该接口代替 JPushInterface.init 接口。
+        //
+        //注 2：manifest 中配置的 appkey 与该接口传入 appkey 建议保持一致，如不一致则以 manifest 中配置的接口为准。
+        //
+        //注 3：如果 manifest 中 appkey 配置为空，则以该接口传入的 appkey 为准。
+        //context: 应用上下文
+        //appId: 在极光官网注册应用时生成的 APPKEY
+        //appKey: 填 null 即可
+        //appSecret: 填空即可
+        //callback: 该接口的结果回调，状态码为 0 则说明调用成功，其它值均为失败
+        JPushUPSManager.registerToken(context, appKey,
+                null, "", new UPSRegisterCallBack() {
+                    @Override
+                    public void onResult(TokenResult tokenResult) {
+                        Log.d(TAG, "onResult: " + tokenResult.toString());
+
+                    }
+                });
+
         JPushInterface.setNotificationCallBackEnable(context, true);
         String channel = (String) map.get("channel");
         JPushInterface.setChannel(context, channel);
@@ -334,8 +357,8 @@ public class JPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAw
 
     public void scheduleCache() {
         Log.d(TAG, "scheduleCache:");
-      JPushHelper.getInstance().dispatchNotification();
-      JPushHelper.getInstance().dispatchRid();
+        JPushHelper.getInstance().dispatchNotification();
+        JPushHelper.getInstance().dispatchRid();
     }
 
     public void setTags(MethodCall call, Result result) {
@@ -344,7 +367,7 @@ public class JPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAw
         List<String> tagList = call.arguments();
         Set<String> tags = new HashSet<>(tagList);
         sequence += 1;
-        JPushHelper.getInstance().addCallback(sequence,result);
+        JPushHelper.getInstance().addCallback(sequence, result);
         JPushInterface.setTags(context, sequence, tags);
     }
 
@@ -352,7 +375,7 @@ public class JPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAw
         Log.d(TAG, "cleanTags:");
 
         sequence += 1;
-        JPushHelper.getInstance().addCallback(sequence,result);
+        JPushHelper.getInstance().addCallback(sequence, result);
         JPushInterface.cleanTags(context, sequence);
     }
 
@@ -362,7 +385,7 @@ public class JPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAw
         List<String> tagList = call.arguments();
         Set<String> tags = new HashSet<>(tagList);
         sequence += 1;
-        JPushHelper.getInstance().addCallback(sequence,result);
+        JPushHelper.getInstance().addCallback(sequence, result);
         JPushInterface.addTags(context, sequence, tags);
     }
 
@@ -372,7 +395,7 @@ public class JPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAw
         List<String> tagList = call.arguments();
         Set<String> tags = new HashSet<>(tagList);
         sequence += 1;
-        JPushHelper.getInstance().addCallback(sequence,result);
+        JPushHelper.getInstance().addCallback(sequence, result);
         JPushInterface.deleteTags(context, sequence, tags);
     }
 
@@ -380,14 +403,15 @@ public class JPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAw
         Log.d(TAG, "getAllTags： ");
 
         sequence += 1;
-        JPushHelper.getInstance().addCallback(sequence,result);
+        JPushHelper.getInstance().addCallback(sequence, result);
         JPushInterface.getAllTags(context, sequence);
     }
+
     public void getAlias(MethodCall call, Result result) {
         Log.d(TAG, "getAlias： ");
 
         sequence += 1;
-        JPushHelper.getInstance().addCallback(sequence,result);
+        JPushHelper.getInstance().addCallback(sequence, result);
         JPushInterface.getAlias(context, sequence);
     }
 
@@ -396,7 +420,7 @@ public class JPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAw
 
         String alias = call.arguments();
         sequence += 1;
-        JPushHelper.getInstance().addCallback(sequence,result);
+        JPushHelper.getInstance().addCallback(sequence, result);
         JPushInterface.setAlias(context, sequence, alias);
     }
 
@@ -405,7 +429,7 @@ public class JPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAw
 
         String alias = call.arguments();
         sequence += 1;
-        JPushHelper.getInstance().addCallback(sequence,result);
+        JPushHelper.getInstance().addCallback(sequence, result);
         JPushInterface.deleteAlias(context, sequence);
     }
 
@@ -426,10 +450,12 @@ public class JPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAw
 
         JPushInterface.clearAllNotifications(context);
     }
+
     public void clearLocalNotifications(MethodCall call, Result result) {
         Log.d(TAG, "clearLocalNotifications: ");
         JPushInterface.clearLocalNotifications(context);
     }
+
     public void clearNotification(MethodCall call, Result result) {
         Log.d(TAG, "clearNotification: ");
         Object id = call.arguments;
@@ -557,7 +583,7 @@ public class JPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAw
             String msg = intent.getStringExtra(JPushInterface.EXTRA_MESSAGE);
             String title = intent.getStringExtra(JPushInterface.EXTRA_TITLE);
             Map<String, Object> extras = getNotificationExtras(intent);
-            JPushHelper.getInstance().transmitMessageReceive(msg, title,extras);
+            JPushHelper.getInstance().transmitMessageReceive(msg, title, extras);
         }
 
         private void handlingNotificationOpen(Context context, Intent intent) {
@@ -593,8 +619,6 @@ public class JPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAw
             return extrasMap;
         }
     }
-
-
 
 
 }
