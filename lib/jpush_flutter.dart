@@ -1,7 +1,8 @@
 import 'dart:async';
+import 'dart:io' show Platform;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'dart:io' show Platform;
 
 typedef Future<dynamic> EventHandler(Map<String, dynamic> event);
 
@@ -27,6 +28,7 @@ class JPush {
   EventHandler? _onInAppMessageClick;
   EventHandler? _onInAppMessageShow;
   EventHandler? _onCommandResult;
+
   void setup({
     String appKey = '',
     bool production = false,
@@ -495,14 +497,45 @@ class LocalNotification {
   final int? badge; //?
   final String? soundName; //?
   final String? subtitle; //?
+  //分类处理 5.2.0 版本开始支持
+  // public static final String CATEGORY_ALARM = "alarm";
+  // public static final String CATEGORY_CALL = "call";
+  // public static final String CATEGORY_EMAIL = "email";
+  // public static final String CATEGORY_ERROR = "err";
+  // public static final String CATEGORY_EVENT = "event";
+  // public static final String CATEGORY_LOCATION_SHARING = "location_sharing";
+  // public static final String CATEGORY_MESSAGE = "msg";
+  // public static final String CATEGORY_MISSED_CALL = "missed_call";
+  // public static final String CATEGORY_NAVIGATION = "navigation";
+  // public static final String CATEGORY_PROGRESS = "progress";
+  // public static final String CATEGORY_PROMO = "promo";
+  // public static final String CATEGORY_RECOMMENDATION = "recommendation";
+  // public static final String CATEGORY_REMINDER = "reminder";
+  // public static final String CATEGORY_SERVICE = "service";
+  // public static final String CATEGORY_SOCIAL = "social";
+  // public static final String CATEGORY_STATUS = "status";
+  // public static final String CATEGORY_STOPWATCH = "stopwatch";
+  // public static final String CATEGORY_SYSTEM = "sys";
+  // public static final String CATEGORY_TRANSPORT = "transport";
+  // public static final String CATEGORY_WORKOUT = "workout";
+  final String category; //?
+  //PRIORITY与IMPORTANCE 相互转换关系
+  //PRIORITY_MIN = -2 对应 IMPORTANCE_MIN = 1;
+  //PRIORITY_LOW = -1; 对应 IMPORTANCE_LOW = 2;
+  //PRIORITY_DEFAULT = 0; 对应 IMPORTANCE_DEFAULT = 3;
+  //PRIORITY_HIGH = 1; 对应 IMPORTANCE_HIGH = 4;
+  // PRIORITY_MAX = 2; 对应 IMPORTANCE_MAX = 5;
+  final int priority; //?
 
   const LocalNotification(
-      {@required this.id,
-      @required this.title,
-      @required this.content,
-      @required this.fireTime,
+      {required this.id,
+      required this.title,
+      required this.content,
+      required this.fireTime,
       this.buildId,
       this.extra,
+      this.category = "msg",
+      this.priority = 2,
       this.badge = 0,
       this.soundName,
       this.subtitle})
@@ -521,7 +554,9 @@ class LocalNotification {
       'extra': extra,
       'badge': badge,
       'soundName': soundName,
-      'subtitle': subtitle
+      'subtitle': subtitle,
+      'category': category,
+      'priority': priority,
     }..removeWhere((key, value) => value == null);
   }
 }

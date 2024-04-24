@@ -1,6 +1,7 @@
 package com.jiguang.jpush;
 
 import android.app.Activity;
+import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
@@ -471,6 +472,8 @@ public class JPushPlugin implements FlutterPlugin, MethodCallHandler, ActivityAw
             ln.setNotificationId((Integer) map.get("id"));
             ln.setTitle((String) map.get("title"));
             ln.setContent((String) map.get("content"));
+            ln.setPriority((Integer) map.get("priority"));
+            ln.setCategory((String) map.get("category"));
             HashMap<String, Object> extra = (HashMap<String, Object>) map.get("extra");
 
             if (extra != null) {
